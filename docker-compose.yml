@@ -1,0 +1,79 @@
+version: '3.8'
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    # build:
+    #   context: ./rabbitmq
+    container_name: rabbitmq
+    networks:
+      app-network:
+        ipv4_address: 192.168.1.2
+    ports:
+      - "5672:5672" # Porta para comunicação (AMQP)
+      - "15672:15672" # Porta para a interface de gerenciamento
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+
+  database:
+    image: postgres:latest
+    container_name: database
+    networks:
+      app-network:
+        ipv4_address: 192.168.1.5
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpass
+      POSTGRES_DB: ride_app
+    ports:
+      - "5432:5432"
+    # volumes:
+    #   - db-data:/var/lib/postgresql/data
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  auxiliar:
+    build:
+      context: ./aux
+    container_name: auxiliar
+    restart: always
+    networks:
+      app-network:
+        ipv4_address: 192.168.1.6
+    depends_on:
+      - database
+
+  producer:
+    build:
+      context: ./producer
+    container_name: producer
+    networks:
+      app-network:
+        ipv4_address: 192.168.1.3
+    environment:
+      - RABBITMQ_HOST=192.168.1.2
+    depends_on:
+        - auxiliar
+
+  consumer:
+    build:
+      context: ./consumer
+    container_name: consumer
+    networks:
+      app-network:
+        ipv4_address: 192.168.1.4
+    environment:
+      - RABBITMQ_HOST=192.168.1.2
+      - DB_HOST=192.168.1.5
+
+
+# volumes:
+#   db-data:
