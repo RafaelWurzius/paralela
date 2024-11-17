@@ -15,5 +15,5 @@ COPY criarFilas.py .
 RUN pip install --no-cache-dir pika
 
 # Comando para rodar o script
-# RUN ["python", "criarFilas.py"]
-CMD ["python", "driver_updater.py"]
+CMD ["python", "criarFilas.py"]
+# CMD ["python", "driver_updater.py"]
